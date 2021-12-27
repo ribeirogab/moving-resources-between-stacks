@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  'Test Stack'
+Parameters:
+  TestLambdasEnvironmentName:
+    Type: String
+    Description: Name of an environment. This value will be used as prefix for stack resources
+    AllowedValues: [ninja]
+    ConstraintDescription: Must end with non-numeric character.
+    Default: "ninja"
+  RestApiId:
+    Type: String
+    Default: pwab6wiydh
+  ParentId:
+    Type: String
+    Default: mzqmhtq3q8
+
+Resources:
+  # AWS API Gateway
+  # TestApiGatewayRole:
+  #   Type: AWS::IAM::Role
+  #   DeletionPolicy: Retain
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Sid: ""
+  #           Effect: "Allow"
+  #           Principal:
+  #             Service:
+  #               - "apigateway.amazonaws.com"
+  #           Action:
+  #             - "sts:AssumeRole"
+  #     Path: "/"
+  #     Policies:
+  #       - PolicyName: LambdaAccess
+  #         PolicyDocument:
+  #           Version: "2012-10-17"
+  #           Statement:
+  #             - Effect: "Allow"
+  #               Action: "lambda:*"
+  #               Resource:
+  #                 - !GetAtt TestIncrementOrdersLambda.Arn
+
+  # test-increment-orders
+  # TestIncrementOrdersNodeModulesLayer:
+  #   Type: AWS::Serverless::LayerVersion
+  #   DeletionPolicy: Retain
+  #   Properties:
+  #     LayerName: ninja-test-increment-orders
+  #     Description: Node Modules Dependencies
+  #     ContentUri: test-increment-orders/dependencies/
+  #     CompatibleRuntimes:
+  #       - nodejs14.x
+  #     LicenseInfo: 'MIT'
+
+  # TestIncrementOrdersLambdaRole:
+  #   Type: AWS::IAM::Role
+  #   DeletionPolicy: Retain
+  #   Properties:
+  #     RoleName: ninja-test-increment-orders-lambda-role-a
+  #     AssumeRolePolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal: { Service: [lambda.amazonaws.com] }
+  #           Action: ["sts:AssumeRole"]
+  #     Path: /
+  #     ManagedPolicyArns:
+  #       - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  #     Policies:
+  #       - PolicyName: VPCAccessPolicy
+  #         PolicyDocument:
+  #           Version: "2012-10-17"
+  #           Statement:
+  #             - Effect: "Allow"
+  #               Action:
+  #                 [
+  #                   "ec2:DescribeInstances",
+  #                   "ec2:CreateNetworkInterface",
+  #                   "ec2:AttachNetworkInterface",
+  #                   "ec2:DescribeNetworkInterfaces",
+  #                   "ec2:DeleteNetworkInterface",
+  #                 ]
+  #               Resource: "*"
+
+  # TestIncrementOrdersLambda:
+  #   Type: AWS::Serverless::Function
+  #   DeletionPolicy: Retain
+  #   Properties:
+  #     FunctionName: ninja-test-increment-orders
+  #     CodeUri: test-increment-orders/dist
+  #     Handler: index.handler
+  #     Runtime: nodejs14.x
+  #     Role: !GetAtt TestIncrementOrdersLambdaRole.Arn
+  #     Layers:
+  #       - !Ref TestIncrementOrdersNodeModulesLayer
+
+  # TestIncrementOrdersResource:
+  #   Type: "AWS::ApiGateway::Resource"
+  #   DeletionPolicy: Retain
+  #   Properties:
+  #     RestApiId: !Ref RestApiId
+  #     ParentId: !Ref ParentId
+  #     PathPart: increment-orders
+
+  # TestIncrementOrdersPostMethod:
+  #   Type: "AWS::ApiGateway::Method"
+  #   DeletionPolicy: Retain
+  #   Properties:
+  #     RestApiId: !Ref RestApiId
+  #     ResourceId: !Ref TestIncrementOrdersResource
+  #     HttpMethod: POST
+  #     AuthorizationType: NONE
+  #     Integration:
+  #       Type: AWS_PROXY
+  #       IntegrationHttpMethod: POST
+  #       Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TestIncrementOrdersLambda.Arn}/invocations"
+
+  # TestIncrementOrdersWebHookApiGatewayInvokeLambdaPermission:
+  #   Type: "AWS::Lambda::Permission"
+  #   DeletionPolicy: Retain
+  #   Properties:
+  #     Action: lambda:InvokeFunction
+  #     FunctionName: !GetAtt TestIncrementOrdersLambda.Arn
+  #     Principal: apigateway.amazonaws.com
+  #     SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApiId}/*/POST/increment-orders"
